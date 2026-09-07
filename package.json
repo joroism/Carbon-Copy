@@ -1,0 +1,10 @@
+{
+  "name": "carbon-copy",
+  "version": "0.1.0",
+  "description": "Invisible authorship marks for text documents. Traces which reader's copy leaked.",
+  "main": "src/carbon.js",
+  "bin": { "carbon": "./cli.js" },
+  "scripts": { "test": "node test.js" },
+  "keywords": ["watermark", "steganography", "provenance", "screenplay", "zero-width"],
+  "license": "MIT"
+}

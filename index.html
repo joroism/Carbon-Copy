@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carbon Copy — invisible authorship marks for scripts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFEDF4; --paper-2:#E4E1EC; --ink:#1B1A2A;
+    --carbon:#4B3F9E; --stamp:#C4342B; --muted:#6E6A85; --rule:#CFCADD;
+    --mono:"Courier Prime", ui-monospace, "Courier New", monospace;
+    --sans:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-text-size-adjust:100%}
+  .sheet{max-width:760px;margin:0 auto;padding:36px 22px 80px;border-left:1px solid var(--rule);border-right:1px solid var(--rule);min-height:100vh;
+    background:linear-gradient(to right,transparent 0,transparent 46px,rgba(75,63,158,.10) 46px,rgba(75,63,158,.10) 47px,transparent 47px)}
+  @media (max-width:640px){.sheet{background:none;padding:26px 16px 70px;border-left:none;border-right:none}}
+  header{text-align:center;padding:14px 0 30px}
+  h1{font-family:var(--mono);font-weight:700;font-size:30px;letter-spacing:.02em;margin:0 0 6px}
+  .rule-under{width:118px;height:1px;background:var(--ink);margin:0 auto 14px}
+  .kicker{font-family:var(--mono);font-size:14px;color:var(--muted);margin:0 auto;max-width:44ch}
+  nav{display:flex;border-bottom:1px solid var(--rule);margin-bottom:26px}
+  nav button{flex:1;background:none;border:none;border-bottom:2px solid transparent;font-family:var(--sans);font-size:15px;font-weight:500;color:var(--muted);padding:11px 6px;cursor:pointer;margin-bottom:-1px}
+  nav button[aria-selected="true"]{color:var(--carbon);border-bottom-color:var(--carbon)}
+  nav button:focus-visible{outline:2px solid var(--carbon);outline-offset:-3px}
+  .field{margin-bottom:18px}
+  label{display:block;font-size:13.5px;font-weight:500;margin-bottom:6px}
+  .hint{color:var(--muted);font-weight:400}
+  input[type=text],textarea{width:100%;background:#fff;border:1px solid var(--rule);border-radius:2px;padding:11px 12px;font-family:var(--mono);font-size:15px;line-height:1.6;color:var(--ink);resize:vertical}
+  textarea{min-height:170px}
+  input:focus,textarea:focus{outline:none;border-color:var(--carbon);box-shadow:0 0 0 3px rgba(75,63,158,.14)}
+  button.primary{background:var(--carbon);color:#fff;border:none;border-radius:2px;font-family:var(--sans);font-size:15px;font-weight:600;padding:12px 20px;cursor:pointer;width:100%}
+  button.primary:hover{background:#3E3488}
+  button.primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  button.ghost{background:none;border:1px solid var(--rule);border-radius:2px;font-family:var(--sans);font-size:13px;color:var(--ink);padding:7px 12px;cursor:pointer}
+  button.ghost:hover{border-color:var(--carbon);color:var(--carbon)}
+  button.ghost:focus-visible{outline:2px solid var(--carbon);outline-offset:2px}
+  .copy{background:#fff;border:1px solid var(--rule);border-left:3px solid var(--carbon);padding:14px;margin-bottom:14px}
+  .copy h3{font-family:var(--mono);font-size:15px;font-weight:700;margin:0 0 2px}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--muted);word-break:break-all;margin:0 0 10px}
+  .marked{font-family:var(--mono);font-size:13.5px;background:var(--paper-2);border:1px solid var(--rule);padding:10px;max-height:150px;overflow:auto;white-space:pre-wrap;word-break:break-word;margin-bottom:10px}
+  .marked mark{background:none;color:var(--carbon);font-weight:700}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .stamp{display:none;margin:22px auto 6px;max-width:330px;border:2px solid var(--stamp);outline:1px solid var(--stamp);outline-offset:3px;color:var(--stamp);font-family:var(--mono);padding:14px 16px;transform:rotate(-3.5deg);text-align:center}
+  .stamp.show{display:block;animation:press .28s ease-out}
+  @keyframes press{from{transform:rotate(-3.5deg) scale(1.25);opacity:0}to{transform:rotate(-3.5deg) scale(1);opacity:1}}
+  .stamp .big{font-size:19px;font-weight:700;letter-spacing:.06em;margin-bottom:6px}
+  .stamp .line{font-size:13px;line-height:1.5;word-break:break-word}
+  .stamp.miss{border-color:var(--muted);outline-color:var(--muted);color:var(--muted)}
+  .note{font-size:13.5px;color:var(--muted);border-top:1px solid var(--rule);margin-top:34px;padding-top:16px}
+  .note p{margin:0 0 9px;max-width:66ch}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13.5px;padding:9px 16px;border-radius:2px;opacity:0;pointer-events:none;transition:opacity .2s}
+  .toast.show{opacity:1}
+  .hidden{display:none}
+  @media (prefers-reduced-motion:reduce){.stamp.show{animation:none}.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header>
+    <h1>Carbon</h1>
+    <div class="rule-under"></div>
+    <p class="kicker">Every reader gets a copy that looks identical and isn't. If a version leaks, the text says who held it.</p>
+  </header>
+
+  <nav role="tablist">
+    <button id="tab-mark" role="tab" aria-selected="true" aria-controls="panel-mark">Mark a document</button>
+    <button id="tab-check" role="tab" aria-selected="false" aria-controls="panel-check">Check a document</button>
+  </nav>
+
+  <section id="panel-mark" role="tabpanel" aria-labelledby="tab-mark">
+    <div class="field">
+      <label for="owner">Author <span class="hint">— name embedded in every copy</span></label>
+      <input type="text" id="owner" value="R. Menon" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="recipients">Readers <span class="hint">— one name per line, one copy each</span></label>
+      <textarea id="recipients" style="min-height:78px" spellcheck="false">Yash Raj Films
+Anurag K (dev)
+Netflix India</textarea>
+    </div>
+    <div class="field">
+      <label for="source">Synopsis</label>
+      <textarea id="source" spellcheck="false">A retired forensic accountant in Kochi discovers that the shell company draining her late brother's estate shares a registered address with the temple trust she has audited, unpaid, for eleven years. She has ninety days before the probate closes and the trail dissolves.</textarea>
+    </div>
+    <button class="primary" id="btn-mark">Make reader copies</button>
+    <div id="out" style="margin-top:26px"></div>
+  </section>
+
+  <section id="panel-check" role="tabpanel" aria-labelledby="tab-check" class="hidden">
+    <div class="field">
+      <label for="suspect">Suspect text <span class="hint">— paste anything you think came from your document</span></label>
+      <textarea id="suspect" style="min-height:200px" spellcheck="false" placeholder="Paste here…"></textarea>
+    </div>
+    <button class="primary" id="btn-check">Read the mark</button>
+    <div id="stamp" class="stamp" aria-live="polite"></div>
+    <div id="check-detail" class="meta" style="text-align:center;margin-top:12px"></div>
+  </section>
+
+  <div class="note">
+    <p>The marks are four zero-width Unicode characters carrying a base-4 payload, repeated every 40 words so a partial copy still identifies itself. They survive copy, paste and most re-typing of the file. They do not survive an AI rewrite, a screenshot, or a deliberate strip — nothing does.</p>
+    <p>This is forensic, not preventive. It answers “who leaked it,” not “can they copy it.” Pair it with a dated registration and an NDA, which is what actually wins the argument.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./src/carbon.js"></script>
+<script>
+(function(){
+  "use strict";
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c];}); }
+  function slug(s){ return s.replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase() || "copy"; }
+
+  function sha256(str){
+    if (!window.crypto || !crypto.subtle) return Promise.resolve(null);
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(x){ return ("0"+x.toString(16)).slice(-2); }).join("");
+    }).catch(function(){ return null; });
+  }
+
+  function toast(msg){
+    var t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove("show"); }, 1600);
+  }
+
+  function copyText(str){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(str).then(function(){ toast("Copied with marks intact"); }, function(){ fallbackCopy(str); });
+    } else fallbackCopy(str);
+  }
+  function fallbackCopy(str){
+    var ta = document.createElement("textarea");
+    ta.value = str; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); toast("Copied with marks intact"); }
+    catch(e){ toast("Copy blocked — use Download"); }
+    document.body.removeChild(ta);
+  }
+
+  function download(name, str){
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([str],{type:"text/plain;charset=utf-8"}));
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 500);
+  }
+
+  function selectTab(mark){
+    $("tab-mark").setAttribute("aria-selected", mark);
+    $("tab-check").setAttribute("aria-selected", !mark);
+    $("panel-mark").classList.toggle("hidden", !mark);
+    $("panel-check").classList.toggle("hidden", mark);
+  }
+  $("tab-mark").onclick = function(){ selectTab(true); };
+  $("tab-check").onclick = function(){ selectTab(false); };
+
+  $("btn-mark").onclick = function(){
+    var author = $("owner").value.trim() || "Unattributed";
+    var source = Carbon.strip($("source").value);
+    if (!source.trim()){ toast("Add a synopsis first"); return; }
+
+    var readers = $("recipients").value.split("\n").map(function(s){return s.trim();}).filter(Boolean);
+    if (!readers.length) readers = ["Master copy"];
+
+    var issued = new Date().toISOString();
+    var out = $("out");
+    out.innerHTML = "";
+
+    sha256(source.replace(/\s+/g," ").trim()).then(function(hash){
+      readers.forEach(function(reader){
+        var marked = Carbon.embed(source, { author: author, recipient: reader, issued: issued }, 40);
+        var id = Carbon.parse(Carbon.extract(marked)[0]).id;
+
+        var card = document.createElement("div"); card.className = "copy";
+        var h = document.createElement("h3"); h.textContent = reader; card.appendChild(h);
+
+        var meta = document.createElement("p"); meta.className = "meta";
+        meta.textContent = "id " + id + "  ·  " + issued.slice(0,10) + (hash ? "  ·  sha256 " + hash.slice(0,24) + "…" : "");
+        card.appendChild(meta);
+
+        var pre = document.createElement("div"); pre.className = "marked";
+        pre.innerHTML = Carbon.reveal(esc(marked), "<mark>\u25C6</mark>");
+        card.appendChild(pre);
+
+        var row = document.createElement("div"); row.className = "row";
+        var b1 = document.createElement("button"); b1.className="ghost"; b1.textContent="Copy";
+        b1.onclick = function(){ copyText(marked); };
+        var b2 = document.createElement("button"); b2.className="ghost"; b2.textContent="Download .txt";
+        b2.onclick = function(){ download(slug(reader)+".txt", marked); };
+        var b3 = document.createElement("button"); b3.className="ghost"; b3.textContent="Hide marks";
+        b3.onclick = function(){
+          var showing = b3.textContent === "Hide marks";
+          pre.innerHTML = showing ? esc(marked) : Carbon.reveal(esc(marked), "<mark>\u25C6</mark>");
+          b3.textContent = showing ? "Show marks" : "Hide marks";
+        };
+        row.appendChild(b1); row.appendChild(b2); row.appendChild(b3);
+        card.appendChild(row);
+        out.appendChild(card);
+      });
+      toast(readers.length + (readers.length === 1 ? " copy ready" : " copies ready"));
+    });
+  };
+
+  $("btn-check").onclick = function(){
+    var text = $("suspect").value;
+    var stamp = $("stamp"), detail = $("check-detail");
+    stamp.className = "stamp"; stamp.innerHTML = ""; detail.textContent = "";
+    if (!text.trim()){ toast("Paste some text first"); return; }
+
+    var r = Carbon.inspect(text);
+    void stamp.offsetWidth;
+
+    if (!r.found){
+      stamp.className = "stamp show miss";
+      stamp.innerHTML = '<div class="big">No mark found</div><div class="line">Either this text never carried one, or it was rewritten, screenshotted or stripped.</div>';
+      return;
+    }
+
+    stamp.className = "stamp show";
+    stamp.innerHTML = '<div class="big">Author identified</div>' +
+      '<div class="line">' + esc(r.author || "?") + '</div>' +
+      '<div class="line">issued to ' + esc(r.recipient || "?") + '</div>' +
+      '<div class="line">' + esc((r.issued||"").slice(0,10)) + '  ·  id ' + esc(r.id || "?") + '</div>';
+
+    detail.textContent = r.marks + " intact mark" + (r.marks===1?"":"s") + " recovered" +
+      (r.spliced ? "  ·  warning: " + r.copies.length + " different copies spliced together" : "");
+  };
+})();
+</script>
+</body>
+</html>
